@@ -6,6 +6,7 @@ import aiofiles.tempfile
 import asyncio
 import pytest
 
+
 def test_pair():
     class Blank(Struct):
         x: Tag[int, "u8"]
@@ -15,6 +16,7 @@ def test_pair():
     p = Blank.unpack_b(inp)
     assert p.x == 0xA
     assert p.y == 0xF00A
+
 
 def test_endian_pair():
     class Blank(Struct):
@@ -52,6 +54,7 @@ def test_sized_array2():
     assert p.x == 0xFF0A
     assert p.arr == [b"2", b"3", b"2"]
 
+
 def test_predicate_array():
     class Blank(Struct):
         def _pred(self, read: int):
@@ -65,6 +68,7 @@ def test_predicate_array():
     assert p.x == 3
     assert p.arr == [b"2", b"3", b"2"]
 
+
 def test_cstring_unsized():
     class Blank(Struct):
         x: Tag[int, "u8"]
@@ -76,6 +80,7 @@ def test_cstring_unsized():
     assert p.x == 0x0B
     assert p.string == b"pwr_ext"
     assert p.y == 27.593
+
 
 def test_cstring_sized():
     class Blank(Struct):
@@ -97,6 +102,7 @@ def test_cstring_sized():
     assert p.string2 == b"12345"
     assert p.y == 0xAFFA
 
+
 def test_cstring_zero_size():
     class Blank(Struct):
         x: Tag[int, "u8"]
@@ -108,6 +114,7 @@ def test_cstring_zero_size():
     assert p.x == 0x0B
     assert p.string == b""
     assert p.y == 0xAFFA
+
 
 def test_array_of_shorts():
     arr_t = "[]"
@@ -123,6 +130,7 @@ def test_array_of_shorts():
     assert p.string == [0x3130, 0x3332, 0x3534]
     assert p.y == 0xAFFA
 
+
 def test_array_of_size_0():
     arr_t = "[]"
 
@@ -135,6 +143,7 @@ def test_array_of_size_0():
     p = Blank.unpack_b(inp)
     assert p.x == 0x0C
     assert p.y == 0xAFFA
+
 
 def test_array_with_struct_type():
     arr_t = "[]"
@@ -154,6 +163,7 @@ def test_array_with_struct_type():
     assert p.a[1].x == 0xFF00
     assert p.y == 0xAFFA
 
+
 def test_inheritance():
     class A(Struct):
         z: Tag[bytes, "cstring"]
@@ -168,10 +178,11 @@ def test_inheritance():
     assert p.x == 0xA
     assert p.y == 0xBBCC
 
+
 def test_dynamic_value():
     class A(Struct):
         a: Tag[int, 'u8']
-        x: Tag[int, DV[lambda x: x + 1], "u8"] # type: ignore
+        x: Tag[int, DV[lambda x: x + 1], "u8"]  # type: ignore
         y: Tag[int, 'u8']
 
     inp = b"\x05\x03\x04"
@@ -180,6 +191,7 @@ def test_dynamic_value():
     assert p.a == 5
     assert p.x == 4
     assert p.y == 4
+
 
 def test_ignore_non_tagged():
     class A(Struct):
@@ -193,6 +205,7 @@ def test_ignore_non_tagged():
     assert p.x == 0xABBA
     assert p.z == b'123'
     assert p.a == 0xAA
+
 
 def test_dtr():
     class A(Struct):
@@ -229,10 +242,12 @@ def test_dtr():
     assert p.size == 0x10
     assert p.tags == 0x0A0B
 
+
 def test_dtr_optional():
     class A(Struct):
         def opt_cstring_from_size(self) -> Optional[Serialized[Any]]:
             return None
+
         def cstring_from_size(self) -> list[Any]:
             return [self.size, 'cstring']
 
@@ -245,6 +260,7 @@ def test_dtr_optional():
     assert p.size == 3
     assert p.opt is None
     assert p.arr == b'123'
+
 
 @pytest.mark.xfail("Rejecting test for function return in DTR temporarely")
 def test_dtr_invalid_function_no_return_annotation():
@@ -260,6 +276,7 @@ def test_dtr_invalid_function_no_return_annotation():
         p = A.unpack_b(inp)
         assert p.size == 3
         assert p.arr == b"123"
+
 
 @pytest.mark.xfail("Rejecting test for function return in DTR temporarely")
 def test_dtr_invalid_function_return_annotatnion():
@@ -288,11 +305,11 @@ def test_dtr_and_strings_and_dv():
         type: Tag[int, 'i8']
         name: Tag[bytes, 'cstring']
         value: Tag[Any, DV[lambda v: v / 10], DTR[from_type_dtr]]
-
     inp = b'\x0b\xbb\x00\x00\x00\x12\x00\x04pwr_ext\x00+\x87\x16\xd9\xce\x97;@\x0b\xbb\x00\x00\x00\x11\x01\x03avl_inputs\x00\x00\x00\x00\x01'
     p = DataBlock.unpack_b(inp)
     p = DataBlock.unpack_b(inp)
     assert p.value == 27.593 / 10
+
 
 def test_dtr_and_strings_and_dv_async():
     def from_type_dtr(d: 'DataBlock') -> list[Any]:
@@ -307,13 +324,14 @@ def test_dtr_and_strings_and_dv_async():
         value: Tag[Any, DV[lambda v: v / 10], DTR[from_type_dtr]]
 
     async def main():
-        async with aiofiles.tempfile.TemporaryFile() as f: # type: ignore
+        async with aiofiles.tempfile.TemporaryFile() as f:  # type: ignore
             inp = b'\x0b\xbb\x00\x00\x00\x12\x00\x04pwr_ext\x00+\x87\x16\xd9\xce\x97;@\x0b\xbb\x00\x00\x00\x11\x01\x03avl_inputs\x00\x00\x00\x00\x01'
-            await f.write(inp) # type: ignore
-            await f.seek(0) # type: ignore
-            p = await DataBlock.unpack_async(f) # type: ignore
-            assert p.value == 27.593 / 10 # type: ignore
+            await f.write(inp)  # type: ignore
+            await f.seek(0)  # type: ignore
+            p = await DataBlock.unpack_async(f)  # type: ignore
+            assert p.value == 27.593 / 10  # type: ignore
     asyncio.run(main())
+
 
 def test_benchmark_normal(benchmark: Any):
     class A(Struct):
@@ -325,6 +343,7 @@ def test_benchmark_normal(benchmark: Any):
     inp = b'\xAB\xBA\xAB\xBA123\0\xAA'
     benchmark.pedantic(A.unpack_b, args=(inp,), iterations=4, rounds=1000)
 
+
 def test_benchmark_dv(benchmark: Any):
     class A(Struct):
         x: Tag[int, "u16"]
@@ -334,6 +353,7 @@ def test_benchmark_dv(benchmark: Any):
 
     inp = b'\xAB\xBA\xAB\xBA123\0\xAA'
     benchmark.pedantic(A.unpack_b, args=(inp,), iterations=4, rounds=1000)
+
 
 def test_benchmark_dtr(benchmark: Any):
     def from_type_dtr(d: 'A') -> list[str]:
@@ -347,6 +367,7 @@ def test_benchmark_dtr(benchmark: Any):
 
     inp = b'\xAB\xBA\xAB\xBA123\0\xAA'
     benchmark.pedantic(A.unpack_b, args=(inp,), iterations=4, rounds=1000)
+
 
 def test_benchmark_dv_dtr(benchmark: Any):
     def from_type_dtr(d: 'A') -> u16:
