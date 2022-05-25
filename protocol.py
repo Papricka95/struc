@@ -36,9 +36,6 @@ class Protocol(Struct):
         imei: Tag[bytes, 15, "cstring"]
         message_type: Tag[int, "u8"]
 
-        # latitude: Tag[Any, DV[lambda v: v / 2], DTR[from_type_dtr]]
-        # longitude: Tag[Any, DV[lambda v: v / 2], DTR[from_type_dtr]]
-
         latitude: Tag[Any, DV[lambda v: v*2], DTR[from_type_dtr]]
         longitude: Tag[Any, DV[lambda v: v*2], DTR[from_type_dtr]]
 
