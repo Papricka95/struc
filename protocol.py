@@ -71,7 +71,8 @@ class Protocol(Struct):
             This function intended for check type of input data.
             The check intends for create valid returned data in format of dict.
         '''
-        current_type = data[15]
+        position_byte_type = 15
+        current_type = data[position_byte_type]
         return current_type
 
     @staticmethod
