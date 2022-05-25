@@ -1,93 +1,75 @@
 from typing import Any
-from struc2 import Struct, Tag, LittleEndian, DV, DTR
+from struc2 import Struct, Tag, LittleEndian, DV, DTR, BigEndian
 from struc2.Serialized import Serialized
-from struc2.SerializedImpl import u16, u8, f32
-
-
-# import csv
+from struc2.SerializedImpl import u16, u8, f32, i64, i32, i16, i8
 
 
 class Protocol(Struct):
-    def from_type_dtr(d: 'DataBlock') -> list[Any]:
-        return [LittleEndian, 'f64']
 
-    imei: Tag[bytes, 15, "cstring"]
-    message_type: Tag[int, "u8"]
-    # field_1: Tag[Any, DV[lambda v: v], DTR[from_type_dtr]]
-    # field_2: Tag[Any, DV[lambda v: v], DTR[from_type_dtr]]
-    field_1: Tag[int, "u8"]
-    field_2: Tag[int, "u8"]
+    class TypeOne(Struct):
+        '''
+            class TypeOne contains method parse that can to parse bytes of data
+            This method return dict of data which fit to type0
+        '''
+        def from_type_dtr(d: 'DataBlock') -> list[Any]:
+            return [LittleEndian, 'f32']
 
-    def pars_func_type0(data: bytes) -> dict:
+        imei: Tag[bytes, 15, "cstring"]
+        message_type: Tag[int, "u8"]
 
-        print(data)
-        p = Protocol.unpack_b(data)
-        print(p.imei)
-        print(p.message_type)
-        print(p.field_1)
-        print(p.field_2)
-        return {'type': 'zero'}
+        # latitude: Tag[Any, DV[lambda v: v / 2], DTR[from_type_dtr]]
+        # longitude: Tag[Any, DV[lambda v: v / 2], DTR[from_type_dtr]]
 
-    def pars_func_type1(data: bytes) -> dict:
+        latitude: Tag[Any, DV[lambda v: v*2], DTR[from_type_dtr]]
+        longitude: Tag[Any, DV[lambda v: v*2], DTR[from_type_dtr]]
 
-        print(data)
-        p = Protocol.unpack_b(data)
-        print(data)
-        print(p.imei)
-        print(p.message_type)
-        print(p.field_1)
-        print(p.field_2)
-        return {'type': 'one'}
+        @staticmethod
+        def parse(data: bytes) -> dict:
+            p = Protocol.TypeOne.unpack_b(data)
+            return {'imei': p.imei, 'type': hex(p.message_type), 'lat': p.latitude, 'lon': p.longitude}
+
+    class TypeTwo(Struct):
+        '''
+            class TypeTwo contains method parse that can to parse bytes of data
+            This method return dict of data which fit to type1
+        '''
+
+        def cstring_from_size(self) -> list[Any]:
+            return [self.code, "cstring"]
+
+        imei: Tag[bytes, 15, "cstring"]
+        message_type: Tag[int, "u8"]
+        code: Tag[bytes, "u8"]
+        message: Tag[Any, DTR[cstring_from_size]]
+
+        @staticmethod
+        def parse(data: bytes) -> dict:
+            p = Protocol.TypeTwo.unpack_b(data)
+            return {'imei': p.imei, 'type': hex(p.message_type), 'code': hex(p.code), 'message': p.message.decode('utf-8')[:-1]}
 
     def check_type(data: bytes):
         current_type = data[15]
         return current_type
 
-    @ staticmethod
+    @staticmethod
     def parse(data: bytes) -> dict:
-
-        # imei: Tag[bytes, 15, "cstring"]
-        # message_type: Tag[int, "u8"]
-        # code: Tag[int, "u8"]
-        # message: Tag[bytes, "cstring"]
-        # field_1: Tag[Any, DV[lambda v: v], DTR[from_type_dtr]]
-        # field_2: Tag[Any, DV[lambda v: v], DTR[from_type_dtr]]
-
         if Protocol.check_type(data):
-            print('type1')
-            return Protocol.pars_func_type1(data)
+            parsed_dict = Protocol.TypeTwo.parse(data)
+            return parsed_dict
         else:
-            print('type0')
-            return Protocol.pars_func_type0(data)
-
-            # p = Protocol.unpack_b(data)
-            # if (p.message_type):
-            #     print(
-            #         f"\'imei\': {p.imei}, \'type\': {p.message_type}, \'code\': {p.code}, \'message\': \'{p.message.decode('utf-8')}\'")
-            #     return {'imei': p.imei, 'type': p.message_type, 'code': p.code, 'message': p.message.decode('utf-8')}
-            # else:
-            #     imei: Tag[bytes, 15, "cstring"]
-            #     message_type: Tag[int, "u8"]
-            #     lat: Tag
-            #     lon: Tag
-            #     p = Protocol.unpack_b(data)
-            #     # print(
-            #     #     f"\'imei\': {p.imei}, \'type\': {p.message_type}, \'code\': {p.lat}, \'message\': \'{p.lon}\'")
-            # return p
+            parsed_dict = Protocol.TypeOne.parse(data)
+            return parsed_dict
 
 
 inp1 = b'634982147811851\x01\x9dapproach allow\x00'
-inp2 = b'276837711961258\x00\xfa\x83|@\xad\xf5\x1b\xc1'
+inp2 = b'744367240316316\x00k;\x83@\xa9L\rA'
 inp3 = b'492220775190111\x00L\xc5\x14\xc2\xa7\xb2;\xc2'
-
-# pars_func(inp1)
-# pars_func2(inp3)
-Protocol.parse(inp1)
-# Protocol.parse(inp2)
+inp4 = b'276837711961258\x00\xfa\x83|@\xad\xf5\x1b\xc1'
+inp5 = b'681051685877949\x00QR5\xc2R\xb27\xc2'
 
 
-# with open('examples.csv', 'r', encoding='utf-8') as file:
-#     all_data = csv.reader(file)
-#     print(all_data)
-#     # for data in all_data:
-#     #     print(data[0])
+print(Protocol.parse(inp1))
+print(Protocol.parse(inp2))
+print(Protocol.parse(inp3))
+print(Protocol.parse(inp4))
+print(Protocol.parse(inp5))
