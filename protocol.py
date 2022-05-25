@@ -5,7 +5,17 @@ from struc2.SerializedImpl import u16, u8, f32, i64, i32, i16, i8
 
 
 class Protocol(Struct):
+    '''
+        class Protocol have two subclasses: TypeOne and TypeTwo
+        which intended for parsing input bytes-data of different types.
 
+        staticmethod parse return dict in format: 
+        type0 {
+            'imei': b'...',
+            'type': '0x..'
+            'lat'
+        }
+    '''
     class TypeOne(Struct):
         '''
             class TypeOne contains method parse that can to parse bytes of data
@@ -26,7 +36,7 @@ class Protocol(Struct):
         @staticmethod
         def parse(data: bytes) -> dict:
             p = Protocol.TypeOne.unpack_b(data)
-            return {'imei': p.imei, 'type': hex(p.message_type), 'lat': p.latitude, 'lon': p.longitude}
+            return {'imei': p.imei, 'type': hex(p.message_type), 'latitude': p.latitude, 'longitude': p.longitude}
 
     class TypeTwo(Struct):
         '''
