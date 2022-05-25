@@ -2,6 +2,8 @@ from typing import Any
 from struc2 import Struct, Tag, LittleEndian, DV, DTR, BigEndian
 from struc2.Serialized import Serialized
 from struc2.SerializedImpl import u16, u8, f32, i64, i32, i16, i8
+import csv
+import ast
 
 
 class Protocol(Struct):
@@ -9,11 +11,18 @@ class Protocol(Struct):
         class Protocol have two subclasses: TypeOne and TypeTwo
         which intended for parsing input bytes-data of different types.
 
-        staticmethod parse return dict in format: 
+        staticmethod parse return dict in format:
         type0 {
             'imei': b'...',
-            'type': '0x..'
-            'lat'
+            'type': '0x...'
+            'latitude': ...,
+            'longitude': ...
+        }
+        type1 {
+            'imei': b'...',
+            'type': '0x...'
+            'code': '0x...',
+            'message': ...
         }
     '''
     class TypeOne(Struct):
@@ -58,6 +67,10 @@ class Protocol(Struct):
             return {'imei': p.imei, 'type': hex(p.message_type), 'code': hex(p.code), 'message': p.message.decode('utf-8')[:-1]}
 
     def check_type(data: bytes):
+        '''
+            This function intended for check type of input data.
+            The check intends for create valid returned data in format of dict.
+        '''
         current_type = data[15]
         return current_type
 
@@ -71,15 +84,13 @@ class Protocol(Struct):
             return parsed_dict
 
 
-inp1 = b'634982147811851\x01\x9dapproach allow\x00'
-inp2 = b'744367240316316\x00k;\x83@\xa9L\rA'
-inp3 = b'492220775190111\x00L\xc5\x14\xc2\xa7\xb2;\xc2'
-inp4 = b'276837711961258\x00\xfa\x83|@\xad\xf5\x1b\xc1'
-inp5 = b'681051685877949\x00QR5\xc2R\xb27\xc2'
+imei_arr = []
+with open('examples.csv', 'r', encoding='utf-8') as file:
+    all_data = csv.reader(file)
+    for data in all_data:
+        imei_arr.append(data[0])
 
 
-print(Protocol.parse(inp1))
-print(Protocol.parse(inp2))
-print(Protocol.parse(inp3))
-print(Protocol.parse(inp4))
-print(Protocol.parse(inp5))
+for inp in imei_arr:
+    inp = ast.literal_eval(inp)
+    print(Protocol.parse(inp))
